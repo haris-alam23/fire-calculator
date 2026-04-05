@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIRE Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --card: #21253a;
+      --accent: #00d084;
+      --accent2: #7c5cfc;
+      --text: #e8eaf0;
+      --muted: #7a7f9a;
+      --border: #2e3250;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    header p {
+      color: var(--muted);
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 780px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 1.2rem;
+    }
+
+    .slider-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .slider-label span:first-child {
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+
+    .slider-label .val {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,208,132,0.2);
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 0 6px rgba(0,208,132,0.25);
+    }
+
+    /* right column */
+    .right { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    /* stats row */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 900px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+    }
+
+    .stat-card .label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-card .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-card .sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.3rem;
+    }
+
+    .green { color: var(--accent); }
+    .purple { color: var(--accent2); }
+
+    /* progress bar */
+    .progress-wrap {
+      margin-top: 1.2rem;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* chart */
+    .chart-card { flex: 1; }
+
+    .chart-wrap {
+      position: relative;
+      height: 260px;
+    }
+
+    /* savings rate indicator */
+    .rate-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 0.8rem;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.2rem 0;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>FIRE <span>Calculator</span></h1>
+  <p>Financial Independence, Retire Early — find out exactly when you can walk away</p>
+</header>
+
+<div class="layout">
+  <!-- Inputs -->
+  <div class="card">
+    <h2>Your Numbers</h2>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Current Age</span>
+        <span class="val" id="val-age">28</span>
+      </div>
+      <input type="range" id="sl-age" min="18" max="65" value="28" />
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Annual Income</span>
+        <span class="val" id="val-income">$80,000</span>
+      </div>
+      <input type="range" id="sl-income" min="20000" max="500000" step="1000" value="80000" />
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Annual Expenses</span>
+        <span class="val" id="val-expenses">$50,000</span>
+      </div>
+      <input type="range" id="sl-expenses" min="10000" max="400000" step="1000" value="50000" />
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Current Savings / Investments</span>
+        <span class="val" id="val-savings">$20,000</span>
+      </div>
+      <input type="range" id="sl-savings" min="0" max="2000000" step="1000" value="20000" />
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Expected Annual Return</span>
+        <span class="val" id="val-return">7%</span>
+      </div>
+      <input type="range" id="sl-return" min="1" max="15" step="0.5" value="7" />
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span>Inflation Rate</span>
+        <span class="val" id="val-inflation">3%</span>
+      </div>
+      <input type="range" id="sl-inflation" min="0" max="8" step="0.5" value="3" />
+    </div>
+
+    <div class="divider"></div>
+
+    <div style="font-size:0.82rem; color: var(--muted);">Safe Withdrawal Rate</div>
+    <div style="font-size:0.88rem; color: var(--text); margin-top:0.3rem;">4% (Trinity Study)</div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Progress to FIRE</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div class="right">
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">FIRE Number</div>
+        <div class="value green" id="fire-number">$1.25M</div>
+        <div class="sub">25× annual expenses</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Years to FIRE</div>
+        <div class="value green" id="years-to-fire">—</div>
+        <div class="sub" id="retire-year">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Retirement Age</div>
+        <div class="value purple" id="retire-age">—</div>
+        <div class="sub" id="retire-delta">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Savings Rate</div>
+        <div class="value" id="savings-rate" style="color:var(--accent)">—</div>
+        <div class="sub" id="annual-savings-label">—</div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card chart-card">
+      <h2>Portfolio Growth</h2>
+      <div class="chart-wrap">
+        <canvas id="chart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built with the 4% rule (Trinity Study) &nbsp;·&nbsp; Real returns adjusted for inflation &nbsp;·&nbsp;
+  <a href="https://www.mrmoneymustache.com/2012/01/13/the-shockingly-simple-math-behind-early-retirement/" target="_blank">Learn the math</a>
+</footer>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  const sliders = {
+    age:      { el: $('sl-age'),      val: $('val-age'),      fmt: v => v },
+    income:   { el: $('sl-income'),   val: $('val-income'),   fmt: v => '$' + fmt(v) },
+    expenses: { el: $('sl-expenses'), val: $('val-expenses'), fmt: v => '$' + fmt(v) },
+    savings:  { el: $('sl-savings'),  val: $('val-savings'),  fmt: v => '$' + fmt(v) },
+    ret:      { el: $('sl-return'),   val: $('val-return'),   fmt: v => v + '%' },
+    inf:      { el: $('sl-inflation'),val: $('val-inflation'), fmt: v => v + '%' },
+  };
+
+  function fmt(n) {
+    if (n >= 1e6) return (n/1e6).toFixed(2).replace(/\.?0+$/, '') + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(0) + 'k';
+    return n;
+  }
+
+  function fmtFull(n) {
+    return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+
+  // Chart setup
+  const ctx = $('chart').getContext('2d');
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: [], datasets: [
+      {
+        label: 'Portfolio Value',
+        data: [],
+        borderColor: '#00d084',
+        backgroundColor: 'rgba(0,208,132,0.08)',
+        borderWidth: 2.5,
+        fill: true,
+        pointRadius: 0,
+        tension: 0.3,
+      },
+      {
+        label: 'Total Contributed',
+        data: [],
+        borderColor: '#7c5cfc',
+        backgroundColor: 'rgba(124,92,252,0.05)',
+        borderWidth: 2,
+        fill: true,
+        pointRadius: 0,
+        tension: 0.3,
+        borderDash: [5,3],
+      },
+      {
+        label: 'FIRE Number',
+        data: [],
+        borderColor: 'rgba(255,200,60,0.7)',
+        borderWidth: 1.5,
+        borderDash: [6,4],
+        pointRadius: 0,
+        fill: false,
+      }
+    ]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#7a7f9a', font: { size: 11 }, boxWidth: 14 }
+        },
+        tooltip: {
+          backgroundColor: '#21253a',
+          borderColor: '#2e3250',
+          borderWidth: 1,
+          titleColor: '#e8eaf0',
+          bodyColor: '#7a7f9a',
+          callbacks: {
+            label: ctx => ' ' + ctx.dataset.label + ': $' + fmtFull(ctx.raw)
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#7a7f9a', font: { size: 11 } },
+          grid: { color: '#1e2236' }
+        },
+        y: {
+          ticks: {
+            color: '#7a7f9a',
+            font: { size: 11 },
+            callback: v => '$' + fmt(v)
+          },
+          grid: { color: '#1e2236' }
+        }
+      }
+    }
+  });
+
+  function calculate() {
+    const age      = +sliders.age.el.value;
+    const income   = +sliders.income.el.value;
+    const expenses = +sliders.expenses.el.value;
+    const savings  = +sliders.savings.el.value;
+    const ret      = +sliders.ret.el.value / 100;
+    const inf      = +sliders.inf.el.value / 100;
+
+    const annualSavings = Math.max(0, income - expenses);
+    const savingsRate   = income > 0 ? (annualSavings / income) * 100 : 0;
+    const realReturn    = (1 + ret) / (1 + inf) - 1;
+    const fireNumber    = expenses * 25;
+
+    // Update slider display values
+    Object.values(sliders).forEach(s => {
+      s.val.textContent = s.fmt(s.el.value);
+    });
+
+    // Stats
+    $('fire-number').textContent = '$' + fmt(fireNumber);
+    $('savings-rate').textContent = savingsRate.toFixed(1) + '%';
+    $('annual-savings-label').textContent = '$' + fmtFull(annualSavings) + ' / yr saved';
+
+    // Project portfolio year by year
+    const labels = [];
+    const portfolioData = [];
+    const contributedData = [];
+    const fireLineData = [];
+
+    let portfolio = savings;
+    let contributed = savings;
+    let yearsToFire = null;
+    const maxYears = 60;
+    const currentYear = new Date().getFullYear();
+
+    for (let y = 0; y <= maxYears; y++) {
+      labels.push(age + y);
+      portfolioData.push(Math.round(portfolio));
+      contributedData.push(Math.round(contributed));
+      fireLineData.push(fireNumber);
+
+      if (yearsToFire === null && portfolio >= fireNumber) {
+        yearsToFire = y;
+      }
+
+      portfolio = portfolio * (1 + realReturn) + annualSavings;
+      contributed += annualSavings;
+    }
+
+    // Already FIRE?
+    if (savings >= fireNumber) yearsToFire = 0;
+
+    if (yearsToFire !== null) {
+      const retireAge = age + yearsToFire;
+      $('years-to-fire').textContent = yearsToFire === 0 ? 'Now!' : yearsToFire + ' yrs';
+      $('retire-age').textContent    = retireAge;
+      $('retire-year').textContent   = 'In ' + (currentYear + yearsToFire);
+      $('retire-delta').textContent  = yearsToFire === 0 ? 'You\'re already there' : retireAge < 40 ? 'Extremely early' : retireAge < 50 ? 'Early retirement' : retireAge < 60 ? 'Before traditional retirement' : 'Traditional retirement';
+    } else {
+      $('years-to-fire').textContent = '60+ yrs';
+      $('retire-age').textContent    = '80+';
+      $('retire-year').textContent   = 'Increase savings rate';
+      $('retire-delta').textContent  = 'Try saving more';
+    }
+
+    // Progress
+    const pct = Math.min(100, (savings / fireNumber) * 100);
+    $('progress-pct').textContent = pct.toFixed(1) + '%';
+    $('progress-fill').style.width = pct + '%';
+
+    // Trim chart to relevant range
+    const showYears = yearsToFire !== null ? Math.min(yearsToFire + 10, maxYears) : maxYears;
+    chart.data.labels           = labels.slice(0, showYears + 1);
+    chart.data.datasets[0].data = portfolioData.slice(0, showYears + 1);
+    chart.data.datasets[1].data = contributedData.slice(0, showYears + 1);
+    chart.data.datasets[2].data = fireLineData.slice(0, showYears + 1);
+    chart.update('none');
+  }
+
+  // Bind all sliders
+  Object.values(sliders).forEach(s => s.el.addEventListener('input', calculate));
+
+  calculate();
+</script>
+</body>
+</html>
